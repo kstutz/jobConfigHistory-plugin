@@ -55,16 +55,30 @@
                       <td>${config.date}</td>
                       <td>${config.operation}</td>
                       <td><a href="${rootURL}/user/${config.userID}">${config.userID}</a></td>
-                      <td><a href="configOutput?type=xml&amp;name=${config.getJob()}&amp;timestamp=${config.getDate()}">
+                      <td>
+                        <j:if test="${config.operation != 'Deleted'}">
+                          <a href="configOutput?type=xml&amp;name=${config.getJob()}&amp;timestamp=${config.getDate()}">
                             <img src="${imagesURL}/24x24/document.gif" alt="" />${%View as XML}
                           </a>
                           <st:nbsp />
                           <a href="configOutput?type=raw&amp;name=${config.getJob()}&amp;timestamp=${config.getDate()}">
                             (${%RAW})
                           </a>
+                        </j:if>
                       </td>
-                      <td align="center" style="border-left: solid 1px #bbb;"><f:radio name="timestamp1" value="${config.getDate()}" checked="${configNr == 2 ? true:false}" /></td>
-                      <td align="center" style="border-left: solid 1px #bbb;"><f:radio name="timestamp2" value="${config.getDate()}" checked="${configNr == 1 ? true:false}" /></td>
+                      <j:if test="${config.getJob().contains('_deleted_')}">
+                        <j:set var="offsetIfDeleted" value="1"/>
+                      </j:if>
+                      <td align="center" style="border-left: solid 1px #bbb;">
+                        <j:if test="${config.operation != 'Deleted'}">
+                          <f:radio name="timestamp1" value="${config.getDate()}" checked="${configNr == (2 + offsetIfDeleted) ? true:false}" />
+                        </j:if>
+                      </td>
+                      <td align="center" style="border-left: solid 1px #bbb;">
+                        <j:if test="${config.operation != 'Deleted'}">
+                          <f:radio name="timestamp2" value="${config.getDate()}" checked="${configNr == (1 + offsetIfDeleted) ? true:false}" />
+                        </j:if>
+                      </td>
                     </tr>
                     <f:invisibleEntry>
                       <f:textbox name="name" value="${config.getJob()}" />
