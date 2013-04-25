@@ -176,15 +176,15 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
 
     
     /**
-     * Returns the configuration history entries for one group of system files.
+     * Returns the configuration history entries for one group of system files
+     * or deleted jobs.
      * 
      * @param req The incoming StaplerRequest
      * @return Configs list for one group of system configuration files.
      * @throws IOException
      *             if one of the history entries might not be read.
      */
-    public final List<ConfigInfo> getSingleConfigs(StaplerRequest req) throws IOException {
-        final String name = req.getParameter("name");
+    public final List<ConfigInfo> getSingleConfigs(String name) throws IOException {
         final ArrayList<ConfigInfo> configs = new ArrayList<ConfigInfo>();
         final File historyRootDir;
         if (name.contains(JobConfigHistoryConsts.DELETED_MARKER)) {
@@ -238,12 +238,28 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
      * @return The link as String.
      */
     public final String createLinkToJobFiles(ConfigInfo config, String type) {
-        final String link;
-        if (config.getIsJob() && !config.getJob().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
-            link = getHudson().getRootUrl() + "job/" + config.getJob() + getUrlName() 
-                    + "/configOutput?type=" + type + "&timestamp=" + config.getDate();
+        String link = null;
+        final String name = config.getJob();
+        final String timestamp = config.getDate();
+
+        if (name.contains(JobConfigHistoryConsts.DELETED_MARKER)) {
+            //if last config.xml for deleted job doesn't exist (due to deletion while being disabled)
+            //then return link to the version before
+            if (getOldConfigXml(name, timestamp) == null) {
+                try {
+                    final ConfigInfo nextConfig = getSingleConfigs(name).get(1);
+                    link = "configOutput?type=" + type + "&name=" + nextConfig.getJob() + "&timestamp=" + nextConfig.getDate();
+                } catch (IOException ex) {
+                    LOG.finest("Unable to get config for " + name);
+                }
+            } else {
+                link = "configOutput?type=" + type + "&name=" + name + "&timestamp=" + timestamp;
+            }
+        } else if (config.getIsJob()) {
+            link = getHudson().getRootUrl() + "job/" + name + getUrlName() 
+                    + "/configOutput?type=" + type + "&timestamp=" + timestamp;
         } else {
-            link = "configOutput?type=" + type + "&name=" + config.getJob() + "&timestamp=" + config.getDate();
+            link = "configOutput?type=" + type + "&name=" + name + "&timestamp=" + timestamp;
         }
         return link;
     }
@@ -353,8 +369,9 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         }
 
         if (configFile == null) {
-            throw new IllegalArgumentException("Unable to get history from: "
-                    + path);
+            LOG.finest("Unable to get history from: " + path);
+            return null;
+//            throw new IllegalArgumentException("Unable to get history from: " + path);
         } else {
             return new XmlFile(configFile);
         }
