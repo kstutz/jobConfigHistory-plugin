@@ -444,6 +444,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         final FilePath newFilePath = new FilePath(new File(getPlugin().getJobHistoryRootDir(), newName));
         try {
             oldFilePath.moveAllChildrenTo(newFilePath);
+            oldFilePath.delete();
         } catch (InterruptedException ex) {
             LOG.info("Unable to move old history data " + oldFilePath + " to new directory " + newFilePath);
             LOG.info(ex.getMessage());
@@ -452,25 +453,6 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
             LOG.info(ex.getMessage());
         }
         
-        //        moveHistory(deletedName, newName);
-
         rsp.sendRedirect(getHudson().getRootUrl() + project.getUrl());
     }
-    
-    private void moveHistory(String oldName, String newName) {
-        final File oldDir = new File(getPlugin().getJobHistoryRootDir(), oldName);
-        final File newDir = new File(getPlugin().getJobHistoryRootDir(), newName);
-
-        LOG.finest("oldDir: " + oldDir);
-        LOG.finest("newDir: " + newDir);
-        
-        for (File oldHistoryDir : oldDir.listFiles()) {
-            final File newHistoryDir = new File(newDir, oldHistoryDir.getName());
-            newHistoryDir.mkdirs();
-            for (File file : oldHistoryDir.listFiles()) {
-                file.renameTo(new File(newHistoryDir, file.getName()));
-            }
-            oldHistoryDir.delete();
-        }
-    } 
 }

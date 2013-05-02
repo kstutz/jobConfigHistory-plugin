@@ -48,6 +48,10 @@ public enum ConfigHistoryListenerHelper {
      */
     DELETED(Messages.ConfigHistoryListenerHelper_DELETED());
     
+    /**
+     * Helper for job restoring.
+     */
+//    RESTORED(Messages.ConfigHistoryListenerHelper_RESTORED());
     
 
     /** Our logger. */
