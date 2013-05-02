@@ -205,7 +205,6 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         
         final HtmlAnchor deletedLink = (HtmlAnchor) htmlPage.getElementById("deleted");
         final HtmlPage historyPage = (HtmlPage) deletedLink.click();
-        System.out.println(historyPage.asXml());
         final HtmlForm diffFilesForm = historyPage.getFormByName("diffFiles");
         final HtmlPage diffPage = (HtmlPage) diffFilesForm.submit((HtmlButton) last(diffFilesForm.getHtmlElementsByTagName("button")));
         WebAssert.assertTextPresent(diffPage, "<disabled>");

@@ -15,7 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Saves the job configuration if the job is created or renamed.
+ * Saves the job configuration if the job is created, renamed or deleted.
  *
  * @author Stefan Brausch
  */
@@ -35,7 +35,6 @@ public final class JobConfigHistoryJobListener extends ItemListener {
             LOG.finest("onCreated: not an AbstractItem, skipping history save");
         }
         LOG.finest("onCreated for " + item + " done.");
-        //        new Exception("STACKTRACE for double invocation").printStackTrace();
     }
 
     /** {@inheritDoc}

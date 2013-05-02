@@ -1,7 +1,9 @@
 package hudson.plugins.jobConfigHistory;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -9,12 +11,16 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
+import javax.xml.transform.stream.StreamSource;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import hudson.Extension;
+import hudson.FilePath;
 import hudson.XmlFile;
+import hudson.model.AbstractProject;
+import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.RootAction;
 import hudson.plugins.jobConfigHistory.JobConfigHistoryBaseAction.SideBySideView.Line;
@@ -179,8 +185,8 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
      * Returns the configuration history entries for one group of system files
      * or deleted jobs.
      * 
-     * @param req The incoming StaplerRequest
-     * @return Configs list for one group of system configuration files.
+     * @param name The name of the job or system file
+     * @return Configs list for one group of system configuration files or a deleted job.
      * @throws IOException
      *             if one of the history entries might not be read.
      */
@@ -393,4 +399,78 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         }
         return true;
     }
+    
+    /**
+     * Action when 'restore' button is pressed: Restore deleted project.
+     * 
+     * @param req Incoming StaplerRequest
+     * @param rsp Outgoing StaplerResponse
+     * @throws IOException If something goes wrong
+     */
+    public final void doRestore(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        getAccessControlledObject().checkPermission(AbstractProject.CONFIGURE);
+
+        final String deletedName = req.getParameter("name");
+        String newName = deletedName.split("_deleted_") [0];
+        
+        LOG.finest("deletedName: " + deletedName);
+        LOG.finest("newName: " + newName);
+        
+        final List<ConfigInfo> configInfos = getSingleConfigs(deletedName);
+        ConfigInfo lastChange = Collections.min(configInfos, ConfigInfoComparator.INSTANCE);
+        String timestamp = lastChange.getDate();
+        XmlFile configXml = getOldConfigXml(deletedName, timestamp);
+        
+        if (configXml == null) {
+            lastChange = configInfos.get(1);
+            timestamp = lastChange.getDate();
+            configXml = getOldConfigXml(deletedName, timestamp);
+        }
+        
+        final InputStream is = new ByteArrayInputStream(configXml.asString().getBytes("UTF-8"));
+        
+        //neues Projekt erzeugen
+        final AbstractProject project;
+        if (getHudson().getItem(newName) != null) {
+            int i = 1;
+            do {
+                newName = newName + "_" + i;
+            } while (getHudson().getItem(newName) != null);
+        }
+
+        project = (AbstractProject) getHudson().createProjectFromXML(newName, is);
+
+        final FilePath oldFilePath = new FilePath(new File(getPlugin().getJobHistoryRootDir(), deletedName));
+        final FilePath newFilePath = new FilePath(new File(getPlugin().getJobHistoryRootDir(), newName));
+        try {
+            oldFilePath.moveAllChildrenTo(newFilePath);
+        } catch (InterruptedException ex) {
+            LOG.info("Unable to move old history data " + oldFilePath + " to new directory " + newFilePath);
+            LOG.info(ex.getMessage());
+        } catch (IOException ex) {
+            LOG.info("Unable to move old history data " + oldFilePath + " to new directory " + newFilePath);            
+            LOG.info(ex.getMessage());
+        }
+        
+        //        moveHistory(deletedName, newName);
+
+        rsp.sendRedirect(getHudson().getRootUrl() + project.getUrl());
+    }
+    
+    private void moveHistory(String oldName, String newName) {
+        final File oldDir = new File(getPlugin().getJobHistoryRootDir(), oldName);
+        final File newDir = new File(getPlugin().getJobHistoryRootDir(), newName);
+
+        LOG.finest("oldDir: " + oldDir);
+        LOG.finest("newDir: " + newDir);
+        
+        for (File oldHistoryDir : oldDir.listFiles()) {
+            final File newHistoryDir = new File(newDir, oldHistoryDir.getName());
+            newHistoryDir.mkdirs();
+            for (File file : oldHistoryDir.listFiles()) {
+                file.renameTo(new File(newHistoryDir, file.getName()));
+            }
+            oldHistoryDir.delete();
+        }
+    } 
 }

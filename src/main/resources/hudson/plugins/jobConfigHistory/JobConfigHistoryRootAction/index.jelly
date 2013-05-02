@@ -63,6 +63,9 @@
                   <td class="pane-header" align="left">${%Operation}</td>
                   <td class="pane-header" align="left">${%User}</td>
                   <td class="pane-header" align="left">${%File(raw)}</td>
+                  <j:if test="${filter == 'deleted'}">
+                    <td class="pane-header" align="left">${%Restore project}</td>
+                  </j:if>
                 </tr>
                 <j:set var="configNr" value="0"/>
                 <j:forEach var="config" items="${configs}">
@@ -94,6 +97,13 @@
                           (${%RAW})
                         </a>
                     </td>
+                    <j:if test="${filter == 'deleted'}">
+                      <td>
+						<a id="restore${config.getJob()}" href="restoreQuestion?name=${config.getJob()}">
+						  <img src="${resURL}/plugin/jobConfigHistory/img/restore.png" alt="${%Restore}" />
+					    </a>
+                      </td>
+                    </j:if>
                   </tr>
                 </j:forEach>
               </table>
