@@ -30,6 +30,7 @@ public final class JobConfigHistoryJobListener extends ItemListener {
     public void onCreated(Item item) {
         LOG.finest("In onCreated for " + item);
         if (item instanceof AbstractItem) {
+            final JobConfigHistory plugin = Hudson.getInstance().getPlugin(JobConfigHistory.class);
             ConfigHistoryListenerHelper.CREATED.createNewHistoryEntry(((AbstractItem) item).getConfigFile());
         } else {
             LOG.finest("onCreated: not an AbstractItem, skipping history save");

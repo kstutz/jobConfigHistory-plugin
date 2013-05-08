@@ -452,7 +452,20 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
             LOG.info("Unable to move old history data " + oldFilePath + " to new directory " + newFilePath);            
             LOG.info(ex.getMessage());
         }
+
+        //change historydescr from created to restored
+        final List<ConfigInfo> newConfigInfos = getSingleConfigs(newName);
+        LOG.finest("newConfigInfos.size: " + newConfigInfos.size());
+        lastChange = Collections.min(newConfigInfos, ConfigInfoComparator.INSTANCE);
+        timestamp = lastChange.getDate();
+        final String timestampedDir = getPlugin().getJobHistoryRootDir().getPath() + "/" + project.getName() + "/" + timestamp;
         
+        if ("Created".equals(lastChange.getOperation())) {
+            final XmlFile historyDescription = new XmlFile(new File(timestampedDir, JobConfigHistoryConsts.HISTORY_FILE));
+            final HistoryDescr myDescr = new HistoryDescr(lastChange.getUser(), lastChange.getUserID(), "Restored", lastChange.getDate());
+            historyDescription.write(myDescr);
+        }
+
         rsp.sendRedirect(getHudson().getRootUrl() + project.getUrl());
     }
 }

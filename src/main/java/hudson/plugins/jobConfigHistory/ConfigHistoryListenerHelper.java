@@ -46,12 +46,12 @@ public enum ConfigHistoryListenerHelper {
     /**
      * Helper for job deletion.
      */
-    DELETED(Messages.ConfigHistoryListenerHelper_DELETED());
+    DELETED(Messages.ConfigHistoryListenerHelper_DELETED()),
     
     /**
      * Helper for job restoring.
      */
-//    RESTORED(Messages.ConfigHistoryListenerHelper_RESTORED());
+    RESTORED(Messages.ConfigHistoryListenerHelper_RESTORED());
     
 
     /** Our logger. */

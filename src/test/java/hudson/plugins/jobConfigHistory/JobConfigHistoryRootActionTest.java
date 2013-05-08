@@ -209,4 +209,26 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         final HtmlPage diffPage = (HtmlPage) diffFilesForm.submit((HtmlButton) last(diffFilesForm.getHtmlElementsByTagName("button")));
         WebAssert.assertTextPresent(diffPage, "<disabled>");
     }
+    
+    public void testRestore() throws Exception {
+        
+        final String description = "bla";
+        final FreeStyleProject project = createFreeStyleProject("Test");
+        project.setDescription(description);
+        Thread.sleep(SLEEP_TIME);
+        project.delete();
+
+/*        final HtmlPage htmlPage = webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=deleted");
+        final HtmlAnchor deletedLink = (HtmlAnchor) htmlPage.getElementById("deleted");
+        final HtmlPage historyPage = (HtmlPage) deletedLink.click();
+*/
+        
+        
+        //Projekt erstellen, löschen, restoren -> alte description da? -> configs da?
+        //Projekt ohne configs laden, löschen, restoren
+        //Projekt erstellen, löschen, neues Projekt mit selbem Namen erstellen -> Name mit _1?
+        //Projekt erstellen, disablen, löschen, restoren -> alte Description da?
+        
+        
+    }
 }
