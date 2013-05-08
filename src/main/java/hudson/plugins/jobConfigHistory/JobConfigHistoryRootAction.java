@@ -247,14 +247,15 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         String link = null;
         final String name = config.getJob();
         final String timestamp = config.getDate();
-
+    
         if (name.contains(JobConfigHistoryConsts.DELETED_MARKER)) {
             //if last config.xml for deleted job doesn't exist (due to deletion while being disabled)
             //then return link to the version before
             if (getOldConfigXml(name, timestamp) == null) {
                 try {
                     final ConfigInfo nextConfig = getSingleConfigs(name).get(1);
-                    link = "configOutput?type=" + type + "&name=" + nextConfig.getJob() + "&timestamp=" + nextConfig.getDate();
+                    link = getHudson().getRootUrl() + "job/" + config.getJob().replace("/", "/job/") + getUrlName()
++ "/configOutput?type=" + type + "&name=" + nextConfig.getJob() + "&timestamp=" + nextConfig.getDate();
                 } catch (IOException ex) {
                     LOG.finest("Unable to get config for " + name);
                 }
