@@ -2,6 +2,9 @@ package hudson.plugins.jobConfigHistory;
 
 import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
+import java.util.List;
+
+import org.jvnet.hudson.test.recipes.LocalData;
 
 import hudson.model.FreeStyleProject;
 import hudson.security.LegacyAuthorizationStrategy;
@@ -189,7 +192,7 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         }
     }
     
-    public void testDeletedAfterDisabled() throws Exception {
+/*    public void testDeletedAfterDisabled() throws Exception {
         final String description = "All your base";
         final FreeStyleProject project = createFreeStyleProject("Test");
         project.setDescription(description);
@@ -209,26 +212,61 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         final HtmlPage diffPage = (HtmlPage) diffFilesForm.submit((HtmlButton) last(diffFilesForm.getHtmlElementsByTagName("button")));
         WebAssert.assertTextPresent(diffPage, "<disabled>");
     }
-    
-    public void testRestore() throws Exception {
-        
+*/    
+    public void testRestoreAfterDisabled() throws Exception {
         final String description = "bla";
-        final FreeStyleProject project = createFreeStyleProject("Test");
+        final String name = "TestProject";
+        final FreeStyleProject project = createFreeStyleProject(name);
+        project.setDescription(description);
+        project.disable();
+        Thread.sleep(SLEEP_TIME);
+        project.delete();
+        
+        final HtmlPage jobPage = restoreProject();
+        WebAssert.assertTextPresent(jobPage, name);
+        WebAssert.assertTextPresent(jobPage, description);
+        
+        final HtmlPage historyPage = webClient.goTo("job/" + name + "/" + JobConfigHistoryConsts.URLNAME);
+        System.out.println(historyPage.asText());
+        assertTrue("History page should contain 'Deleted' entry", historyPage.asXml().contains("Deleted"));
+        final List<HtmlAnchor> hrefs = historyPage.getByXPath("//a[contains(@href, \"configOutput?type=xml\")]");
+        assertTrue(hrefs.size() > 2);
+    }
+    
+    public void testRestoreWithSameName() throws Exception {
+        final String description = "blubb";
+        final String name = "TestProject";
+        final FreeStyleProject project = createFreeStyleProject(name);
         project.setDescription(description);
         Thread.sleep(SLEEP_TIME);
         project.delete();
+        
+        createFreeStyleProject(name);
 
-/*        final HtmlPage htmlPage = webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=deleted");
-        final HtmlAnchor deletedLink = (HtmlAnchor) htmlPage.getElementById("deleted");
-        final HtmlPage historyPage = (HtmlPage) deletedLink.click();
-*/
+        final HtmlPage jobPage = restoreProject();
+        WebAssert.assertTextPresent(jobPage, description);
+        WebAssert.assertTextPresent(jobPage, name + "_1");
+    }
+
+    @LocalData
+    public void testRestoreDisabledWithoutConfigs() throws Exception {
+        final String name = "JobWithNoConfigHistory";
+        final FreeStyleProject project = (FreeStyleProject) hudson.getItem(name);
+        final String description = project.getDescription();
+        Thread.sleep(SLEEP_TIME);
+        project.delete();
         
-        
-        //Projekt erstellen, löschen, restoren -> alte description da? -> configs da?
-        //Projekt ohne configs laden, löschen, restoren
-        //Projekt erstellen, löschen, neues Projekt mit selbem Namen erstellen -> Name mit _1?
-        //Projekt erstellen, disablen, löschen, restoren -> alte Description da?
-        
-        
+        final HtmlPage jobPage = restoreProject();
+        WebAssert.assertTextPresent(jobPage, name);
+        WebAssert.assertTextPresent(jobPage, description);
+    }
+    
+    private HtmlPage restoreProject() throws Exception {
+        final HtmlPage htmlPage = webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=deleted");
+        final HtmlAnchor restoreLink = (HtmlAnchor) htmlPage.getElementById("restore");
+        final HtmlPage reallyRestorePage = (HtmlPage) restoreLink.click();
+        final HtmlForm restoreForm = reallyRestorePage.getFormByName("restore");
+        final HtmlPage jobPage = submit(restoreForm, "Submit");
+        return jobPage;
     }
 }

@@ -99,7 +99,7 @@
                     </td>
                     <j:if test="${filter == 'deleted'}">
                       <td>
-						<a id="restore${config.getJob()}" href="restoreQuestion?name=${config.getJob()}">
+						<a id="restore" href="restoreQuestion?name=${config.getJob()}">
 						  <img src="${resURL}/plugin/jobConfigHistory/img/restore.png" alt="${%Restore}" />
 					    </a>
                       </td>

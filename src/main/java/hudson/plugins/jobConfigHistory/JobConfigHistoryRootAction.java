@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -11,7 +12,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
-import javax.xml.transform.stream.StreamSource;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
@@ -20,7 +20,6 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.XmlFile;
 import hudson.model.AbstractProject;
-import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.RootAction;
 import hudson.plugins.jobConfigHistory.JobConfigHistoryBaseAction.SideBySideView.Line;
@@ -255,7 +254,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
                 try {
                     final ConfigInfo nextConfig = getSingleConfigs(name).get(1);
                     link = getHudson().getRootUrl() + "job/" + config.getJob().replace("/", "/job/") + getUrlName()
-+ "/configOutput?type=" + type + "&name=" + nextConfig.getJob() + "&timestamp=" + nextConfig.getDate();
+                           + "/configOutput?type=" + type + "&name=" + nextConfig.getJob() + "&timestamp=" + nextConfig.getDate();
                 } catch (IOException ex) {
                     LOG.finest("Unable to get config for " + name);
                 }
@@ -413,35 +412,66 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
 
         final String deletedName = req.getParameter("name");
         String newName = deletedName.split("_deleted_") [0];
-        
-        LOG.finest("deletedName: " + deletedName);
-        LOG.finest("newName: " + newName);
-        
-        final List<ConfigInfo> configInfos = getSingleConfigs(deletedName);
-        ConfigInfo lastChange = Collections.min(configInfos, ConfigInfoComparator.INSTANCE);
-        String timestamp = lastChange.getDate();
-        XmlFile configXml = getOldConfigXml(deletedName, timestamp);
+
+        XmlFile configXml = getLastOrSecondLastConfigXml(deletedName);
         
         if (configXml == null) {
+            final Writer writer = rsp.getCompressedWriter(req);
+            try {
+                writer.append("Unable to restore project " + deletedName + " due to missing configuration file.");              
+            } finally {
+                writer.close();
+            }
+            return;
+        }
+       
+        final InputStream is = new ByteArrayInputStream(configXml.asString().getBytes("UTF-8"));
+        final AbstractProject project = (AbstractProject) getHudson().createProjectFromXML(findNewName(newName), is);
+        copyHistoryFiles(deletedName, newName);
+        
+        rsp.sendRedirect(getHudson().getRootUrl() + project.getUrl());
+    }
+    
+    private XmlFile getLastOrSecondLastConfigXml(String name) throws IOException {
+        XmlFile configXml = null;
+        final List<ConfigInfo> configInfos;
+        try {
+            configInfos = getSingleConfigs(name);
+        } catch (IOException ex) {
+            LOG.finest("Unable to get config history for " +  name);
+            return configXml;
+        }
+        
+        ConfigInfo lastChange = Collections.min(configInfos, ConfigInfoComparator.INSTANCE);
+        String timestamp = lastChange.getDate();
+        configXml = getOldConfigXml(name, timestamp);
+        
+        if (configXml == null && configInfos.size() > 1) {
             lastChange = configInfos.get(1);
             timestamp = lastChange.getDate();
-            configXml = getOldConfigXml(deletedName, timestamp);
+            configXml = getOldConfigXml(name, timestamp);
         }
         
-        final InputStream is = new ByteArrayInputStream(configXml.asString().getBytes("UTF-8"));
-        
-        //neues Projekt erzeugen
-        final AbstractProject project;
-        if (getHudson().getItem(newName) != null) {
+        return configXml;
+    }
+    
+    private String findNewName(String name) {
+        if (getHudson().getItem(name) != null) {
+            StringBuffer buf = new StringBuffer(name + "_0");
+            final int nameLength = buf.length() - 1;
             int i = 1;
             do {
-                newName = newName + "_" + i;
-            } while (getHudson().getItem(newName) != null);
+                buf = buf.replace(nameLength, buf.length() - 1, String.valueOf(i));
+                i++;
+            } while (getHudson().getItem(buf.toString()) != null);
+            return buf.toString();
+        } else {
+            return name;
         }
-
-        project = (AbstractProject) getHudson().createProjectFromXML(newName, is);
-
-        final FilePath oldFilePath = new FilePath(new File(getPlugin().getJobHistoryRootDir(), deletedName));
+    }
+    
+    private void copyHistoryFiles(String oldName, String newName) {
+        final FilePath oldFilePath = new FilePath(new File(getPlugin().getJobHistoryRootDir(), oldName));
         final FilePath newFilePath = new FilePath(new File(getPlugin().getJobHistoryRootDir(), newName));
         try {
             oldFilePath.moveAllChildrenTo(newFilePath);
@@ -453,20 +483,5 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
             LOG.info("Unable to move old history data " + oldFilePath + " to new directory " + newFilePath);            
             LOG.info(ex.getMessage());
         }
-
-        //change historydescr from created to restored
-        final List<ConfigInfo> newConfigInfos = getSingleConfigs(newName);
-        LOG.finest("newConfigInfos.size: " + newConfigInfos.size());
-        lastChange = Collections.min(newConfigInfos, ConfigInfoComparator.INSTANCE);
-        timestamp = lastChange.getDate();
-        final String timestampedDir = getPlugin().getJobHistoryRootDir().getPath() + "/" + project.getName() + "/" + timestamp;
-        
-        if ("Created".equals(lastChange.getOperation())) {
-            final XmlFile historyDescription = new XmlFile(new File(timestampedDir, JobConfigHistoryConsts.HISTORY_FILE));
-            final HistoryDescr myDescr = new HistoryDescr(lastChange.getUser(), lastChange.getUserID(), "Restored", lastChange.getDate());
-            historyDescription.write(myDescr);
-        }
-
-        rsp.sendRedirect(getHudson().getRootUrl() + project.getUrl());
     }
 }
