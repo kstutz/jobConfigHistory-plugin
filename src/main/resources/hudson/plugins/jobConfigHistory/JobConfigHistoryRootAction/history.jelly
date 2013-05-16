@@ -92,6 +92,13 @@
       		    </j:if>
               </f:form>
             </div>
+            <j:if test="${name.contains('_deleted_')}">
+              <f:form method="post" action="forwardToRestoreQuestion?name=${name}" name="forward">
+                <div align="right">
+                  <f:submit value="${%Restore project}" />
+                </div>
+              </f:form>
+            </j:if>
           </j:otherwise>
         </j:choose>
       </div>

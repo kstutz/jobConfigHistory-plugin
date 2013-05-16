@@ -30,7 +30,6 @@ public final class JobConfigHistoryJobListener extends ItemListener {
     public void onCreated(Item item) {
         LOG.finest("In onCreated for " + item);
         if (item instanceof AbstractItem) {
-            final JobConfigHistory plugin = Hudson.getInstance().getPlugin(JobConfigHistory.class);
             ConfigHistoryListenerHelper.CREATED.createNewHistoryEntry(((AbstractItem) item).getConfigFile());
         } else {
             LOG.finest("onCreated: not an AbstractItem, skipping history save");
@@ -91,7 +90,8 @@ public final class JobConfigHistoryJobListener extends ItemListener {
 
             final SimpleDateFormat buildDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss_SSS");
             final String timestamp = buildDateFormat.format(new Date());
-            final String deletedHistoryName = item.getFullName().replace("/", "/jobs/") + JobConfigHistoryConsts.DELETED_MARKER + timestamp;
+            final String deletedHistoryName = item.getFullName().replace("/", "/jobs/") 
+                    + JobConfigHistoryConsts.DELETED_MARKER + timestamp;
             final File deletedHistoryDir = new File(currentHistoryDir.getParentFile(), deletedHistoryName);
             
             if (!currentHistoryDir.renameTo(deletedHistoryDir)) {

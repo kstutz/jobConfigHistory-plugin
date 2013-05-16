@@ -7,7 +7,6 @@ import java.util.List;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import hudson.model.FreeStyleProject;
-import hudson.model.Hudson;
 import hudson.security.LegacyAuthorizationStrategy;
 import hudson.security.HudsonPrivateSecurityRealm;
 

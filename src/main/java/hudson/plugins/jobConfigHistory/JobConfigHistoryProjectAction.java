@@ -227,7 +227,7 @@ public class JobConfigHistoryProjectAction extends JobConfigHistoryBaseAction {
 
      * @param req StaplerRequest created by pressing the button
      * @param rsp Outgoing StaplerResponse
-     * @throws IOException If XML file can't be read
+     * @throws IOException If redirect goes wrong
      */
     public final void doForwardToRestoreQuestion(StaplerRequest req, StaplerResponse rsp)
         throws IOException {
