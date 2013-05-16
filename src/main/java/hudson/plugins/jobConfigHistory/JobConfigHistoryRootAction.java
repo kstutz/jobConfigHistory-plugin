@@ -247,19 +247,16 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         final String name = config.getJob();
         final String timestamp = config.getDate();
     
-        if (name.contains(JobConfigHistoryConsts.DELETED_MARKER)) {
+        if (name.contains(JobConfigHistoryConsts.DELETED_MARKER) && getOldConfigXml(name, timestamp) == null) {
             //if last config.xml for deleted job doesn't exist (due to deletion while being disabled)
             //then return link to the version before
-            if (getOldConfigXml(name, timestamp) == null) {
-                try {
-                    final ConfigInfo nextConfig = getSingleConfigs(name).get(1);
-                    link = getHudson().getRootUrl() + "job/" + config.getJob().replace("/", "/job/") + getUrlName()
-                           + "/configOutput?type=" + type + "&name=" + nextConfig.getJob() + "&timestamp=" + nextConfig.getDate();
-                } catch (IOException ex) {
-                    LOG.finest("Unable to get config for " + name);
-                }
-            } else {
-                link = "configOutput?type=" + type + "&name=" + name + "&timestamp=" + timestamp;
+            try {
+                final ConfigInfo nextConfig = getSingleConfigs(name).get(1);
+                link = "configOutput?type=" + type + "&name=" + name + "&timestamp=" + nextConfig.getDate();
+            } catch (IOException ex) {
+                LOG.finest("Unable to get config for " + name);
+            } catch (IndexOutOfBoundsException iob) {
+                LOG.finest("Unable to get config for " + name);
             }
         } else if (config.getIsJob()) {
             link = getHudson().getRootUrl() + "job/" + name + getUrlName() 
@@ -414,17 +411,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         String newName = deletedName.split("_deleted_") [0];
 
         XmlFile configXml = getLastOrSecondLastConfigXml(deletedName);
-        
-        if (configXml == null) {
-            final Writer writer = rsp.getCompressedWriter(req);
-            try {
-                writer.append("Unable to restore project " + deletedName + " due to missing configuration file.");              
-            } finally {
-                writer.close();
-            }
-            return;
-        }
-       
+               
         final InputStream is = new ByteArrayInputStream(configXml.asString().getBytes("UTF-8"));
         final AbstractProject project = (AbstractProject) getHudson().createProjectFromXML(findNewName(newName), is);
         copyHistoryFiles(deletedName, newName);
@@ -432,7 +419,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         rsp.sendRedirect(getHudson().getRootUrl() + project.getUrl());
     }
     
-    private XmlFile getLastOrSecondLastConfigXml(String name) throws IOException {
+    public XmlFile getLastOrSecondLastConfigXml(String name) throws IOException {
         XmlFile configXml = null;
         final List<ConfigInfo> configInfos;
         try {

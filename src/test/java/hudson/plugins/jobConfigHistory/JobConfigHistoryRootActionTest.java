@@ -7,6 +7,7 @@ import java.util.List;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import hudson.model.FreeStyleProject;
+import hudson.model.Hudson;
 import hudson.security.LegacyAuthorizationStrategy;
 import hudson.security.HudsonPrivateSecurityRealm;
 
@@ -192,7 +193,7 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         }
     }
     
-/*    public void testDeletedAfterDisabled() throws Exception {
+    public void testDeletedAfterDisabled() throws Exception {
         final String description = "All your base";
         final FreeStyleProject project = createFreeStyleProject("Test");
         project.setDescription(description);
@@ -212,7 +213,7 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         final HtmlPage diffPage = (HtmlPage) diffFilesForm.submit((HtmlButton) last(diffFilesForm.getHtmlElementsByTagName("button")));
         WebAssert.assertTextPresent(diffPage, "<disabled>");
     }
-*/    
+    
     public void testRestoreAfterDisabled() throws Exception {
         final String description = "bla";
         final String name = "TestProject";
@@ -249,7 +250,7 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
     }
 
     @LocalData
-    public void testRestoreDisabledWithoutConfigs() throws Exception {
+    public void testRestoreWithoutConfigs() throws Exception {
         final String name = "JobWithNoConfigHistory";
         final FreeStyleProject project = (FreeStyleProject) hudson.getItem(name);
         final String description = project.getDescription();
@@ -260,7 +261,18 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         WebAssert.assertTextPresent(jobPage, name);
         WebAssert.assertTextPresent(jobPage, description);
     }
-    
+
+    @LocalData
+    public void testNoRestoreLinkWhenNoConfigs() throws Exception {
+        final String name = "DisabledJobWithNoConfigHistory";
+        final FreeStyleProject project = (FreeStyleProject) hudson.getItem(name);
+        Thread.sleep(SLEEP_TIME);
+        project.delete();
+        
+        final HtmlPage htmlPage = webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=deleted");
+        WebAssert.assertElementNotPresentByXPath(htmlPage, ("//img[contains(@src, \"restore.png\")]"));
+    }
+ 
     private HtmlPage restoreProject() throws Exception {
         final HtmlPage htmlPage = webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=deleted");
         final HtmlAnchor restoreLink = (HtmlAnchor) htmlPage.getElementById("restore");
