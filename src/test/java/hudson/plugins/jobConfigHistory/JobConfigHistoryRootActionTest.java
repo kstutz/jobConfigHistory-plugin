@@ -174,6 +174,9 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         }
     }
     
+    /**
+     * Tests whether wrong parameters for getOldConfigXml are detected.
+     */
     public void testGetOldConfigXmlWithWrongParameters() {
         final JobConfigHistoryRootAction rootAction = new JobConfigHistoryRootAction(); 
         try {
@@ -192,6 +195,10 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         }
     }
     
+    /**
+     * Tests if the correct config file is linked even when job was disabled before deletion.
+     * @throws Exception
+     */
     public void testDeletedAfterDisabled() throws Exception {
         final String description = "All your base";
         final FreeStyleProject project = createFreeStyleProject("Test");
@@ -213,6 +220,10 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         WebAssert.assertTextPresent(diffPage, "<disabled>");
     }
     
+    /**
+     * Tests if restoring a project that was disabled before deletion works.
+     * @throws Exception
+     */
     public void testRestoreAfterDisabled() throws Exception {
         final String description = "bla";
         final String name = "TestProject";
@@ -233,6 +244,11 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         assertTrue(hrefs.size() > 2);
     }
     
+    /**
+     * Tests whether finding a new name for a restored project works 
+     * if the old name is already occupied.
+     * @throws Exception
+     */
     public void testRestoreWithSameName() throws Exception {
         final String description = "blubb";
         final String name = "TestProject";
@@ -248,6 +264,11 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         WebAssert.assertTextPresent(jobPage, name + "_1");
     }
 
+    /**
+     * Tests that project gets restored even without previous configs,
+     * because there is one saved at the time of deletion.
+     * @throws Exception
+     */
     @LocalData
     public void testRestoreWithoutConfigs() throws Exception {
         final String name = "JobWithNoConfigHistory";
@@ -261,6 +282,11 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         WebAssert.assertTextPresent(jobPage, description);
     }
 
+    /**
+     * A project will not be restored if there are no configs present 
+     * and it has been disabled at the time of deletion.
+     * @throws Exception
+     */
     @LocalData
     public void testNoRestoreLinkWhenNoConfigs() throws Exception {
         final String name = "DisabledJobWithNoConfigHistory";
@@ -279,5 +305,27 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         final HtmlForm restoreForm = reallyRestorePage.getFormByName("restore");
         final HtmlPage jobPage = submit(restoreForm, "Submit");
         return jobPage;
+    }
+    
+    /**
+     * Tests whether the 'Restore project' button on the history page works as well.
+     * @throws Exception
+     */
+    public void testRestoreFromHistoryPage() throws Exception {
+        final String description = "All your base";
+        final String name = "TestProject";
+        final FreeStyleProject project = createFreeStyleProject(name);
+        project.setDescription(description);
+        Thread.sleep(SLEEP_TIME);
+        project.delete();
+        
+        final HtmlPage htmlPage = webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=deleted");
+        final List<HtmlAnchor> hrefs = htmlPage.getByXPath("//a[contains(@href, \"TestProject_deleted_\")]");
+        final HtmlPage historyPage = (HtmlPage) hrefs.get(0).click();
+        final HtmlPage reallyRestorePage = submit(historyPage.getFormByName("forward"), "Submit");;
+        final HtmlPage jobPage = submit(reallyRestorePage.getFormByName("restore"), "Submit");
+
+        WebAssert.assertTextPresent(jobPage, name);
+        WebAssert.assertTextPresent(jobPage, description);
     }
 }
