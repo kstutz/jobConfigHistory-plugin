@@ -533,19 +533,52 @@ public class JobConfigHistory extends Plugin {
         if (historyDirs != null && historyDirs.length >= entriesToLeave) {
             Arrays.sort(historyDirs, Collections.reverseOrder());
             for (int i = entriesToLeave; i < historyDirs.length; i++) {
+                if (isCreatedEntry(historyDirs[i])) {
+                    continue; 
+                }
                 LOG.fine("purging old directory from history logs: " + historyDirs[i]);
-                for (File file : historyDirs[i].listFiles()) {
-                    if (!file.delete()) {
-                        LOG.warning("problem deleting history file: " + file);
-                    }
-                }
-                if (!historyDirs[i].delete()) {
-                    LOG.warning("problem deleting history directory: " + historyDirs[i]);
-                }
+                deleteDirectory(historyDirs[i]);
             }
         }
     }
 
+    /**
+     * Checks whether the respective history entry is a 'Created' entry.
+     * 
+     * @param historyDir The directory, e.g. 2013-01-18_17-33-51
+     * @return True if the directory contains a 'Created' entry.
+     */
+    protected boolean isCreatedEntry(File historyDir) {
+        final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
+        try {
+            final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
+            LOG.finest("historyDir: " + historyDir);
+            LOG.finest("histDescr.getOperation(): " + histDescr.getOperation());
+            if ("Created".equals(histDescr.getOperation())) {
+                return true;
+            }
+        } catch (IOException ex) {
+            LOG.finest("Unable to retrieve history file for " + historyDir);
+        }
+        return false;
+    }
+
+    /**
+     * Deletes a history directory (e.g. Test/2013-18-01_19-53-40),
+     * first deleting the files it contains.
+     * @param dir The directory which should be deleted.
+     */
+    protected void deleteDirectory(File dir) {
+        for (File file : dir.listFiles()) {
+            if (!file.delete()) {
+                LOG.warning("problem deleting history file: " + file);
+            }
+        }
+        if (!dir.delete()) {
+            LOG.warning("problem deleting history directory: " + dir);
+        }
+    }
+    
     /**
      * Determines if the specified {@code dir} stores history information.
      *

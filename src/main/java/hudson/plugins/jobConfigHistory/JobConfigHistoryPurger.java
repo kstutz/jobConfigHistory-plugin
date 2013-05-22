@@ -9,6 +9,8 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.logging.Logger;
 
+import jenkins.model.Jenkins;
+
 import org.apache.commons.lang.StringUtils;
 
 import hudson.Extension;
@@ -34,7 +36,7 @@ public class JobConfigHistoryPurger extends PeriodicWork {
     
     @Override
     public long getRecurrencePeriod() {
-        return DAY;
+        return MIN;
     }
 
     @Override
@@ -71,6 +73,8 @@ public class JobConfigHistoryPurger extends PeriodicWork {
      * @param itemDirs Config history directories as file arrays.
      */
     private void purgeSystemOrJobHistory(File[] itemDirs) {
+        final JobConfigHistory plugin = Jenkins.getInstance().getPlugin(JobConfigHistory.class);
+        
         if (itemDirs != null && itemDirs.length > 0) {
             for (File itemDir : itemDirs) {
                 //itemDir: z.B. Test2 or hudson.tasks.Ant
@@ -80,8 +84,10 @@ public class JobConfigHistoryPurger extends PeriodicWork {
                     for (File historyDir : historyDirs) {
                         //historyDir: e.g. 2013-01-18_17-33-51
                         if (isTooOld(historyDir)) {
-                            LOG.finest("Should delete: " + historyDir);
-                            deleteDirectory(historyDir);
+                            if (!plugin.isCreatedEntry(historyDir)) {
+                                LOG.finest("Should delete: " + historyDir);
+                                plugin.deleteDirectory(historyDir);
+                            }
                         } else {
                             break;
                         }
@@ -115,21 +121,5 @@ public class JobConfigHistoryPurger extends PeriodicWork {
             }
         }
         return false;
-    }
- 
-    /**
-     * Deletes a history directory (e.g. Test/2013-18-01_19-53-40),
-     * first deleting the files it contains.
-     * @param dir The directory which should be deleted.
-     */
-    private void deleteDirectory(File dir) {
-        for (File file : dir.listFiles()) {
-            if (!file.delete()) {
-                LOG.warning("problem deleting history file: " + file);
-            }
-        }
-        if (!dir.delete()) {
-            LOG.warning("problem deleting history directory: " + dir);
-        }
     }
 }

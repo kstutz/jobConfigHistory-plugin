@@ -322,7 +322,7 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         final HtmlPage htmlPage = webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=deleted");
         final List<HtmlAnchor> hrefs = htmlPage.getByXPath("//a[contains(@href, \"TestProject_deleted_\")]");
         final HtmlPage historyPage = (HtmlPage) hrefs.get(0).click();
-        final HtmlPage reallyRestorePage = submit(historyPage.getFormByName("forward"), "Submit");;
+        final HtmlPage reallyRestorePage = submit(historyPage.getFormByName("forward"), "Submit");
         final HtmlPage jobPage = submit(reallyRestorePage.getFormByName("restore"), "Submit");
 
         WebAssert.assertTextPresent(jobPage, name);

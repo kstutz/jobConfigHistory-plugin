@@ -46,14 +46,8 @@ public enum ConfigHistoryListenerHelper {
     /**
      * Helper for job deletion.
      */
-    DELETED(Messages.ConfigHistoryListenerHelper_DELETED()),
+    DELETED(Messages.ConfigHistoryListenerHelper_DELETED());
     
-    /**
-     * Helper for job restoring.
-     */
-    RESTORED(Messages.ConfigHistoryListenerHelper_RESTORED());
-    
-
     /** Our logger. */
     private static final Logger LOG = Logger.getLogger(ConfigHistoryListenerHelper.class.getName());
 
