@@ -32,49 +32,55 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
     /**
      * Tests whether info gets displayed correctly for filter parameter none/system/jobs/deleted.
      */
-    public void testFilterWithData() {
+    public void testFilterWithData() throws Exception {
         final JobConfigHistory jch = hudson.getPlugin(JobConfigHistory.class);
         jch.setSaveSystemConfiguration(true);
 
         //create some config history data
-        try {
-            final FreeStyleProject project = createFreeStyleProject("Test1");
-            Thread.sleep(SLEEP_TIME);
-            project.disable();
-            Thread.sleep(SLEEP_TIME);
+        final FreeStyleProject project = createFreeStyleProject("Test1");
+        Thread.sleep(SLEEP_TIME);
+        project.disable();
+        Thread.sleep(SLEEP_TIME);
             
-            hudson.setSystemMessage("Testmessage");
-            Thread.sleep(SLEEP_TIME);
+        hudson.setSystemMessage("Testmessage");
+        Thread.sleep(SLEEP_TIME);
             
-            final FreeStyleProject secondProject = createFreeStyleProject("Test2");
-            Thread.sleep(SLEEP_TIME);
-            secondProject.delete();
-        } catch (Exception ex) {
-            fail("Unable to prepare Hudson instance: " + ex);
-        }
+        final FreeStyleProject secondProject = createFreeStyleProject("Test2");
+        Thread.sleep(SLEEP_TIME);
+        secondProject.delete();
 
-        try {
-            checkSystemPage(webClient.goTo(JobConfigHistoryConsts.URLNAME));
-            checkSystemPage(webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=system"));
-                
-            final HtmlPage htmlPageJobs = webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=jobs");
-            assertTrue("Verify history entry for job is listed.", htmlPageJobs.getAnchorByText("Test1") != null);
-            assertTrue("Verify history entry for deleted job is listed.", 
-                    htmlPageJobs.asText().contains(JobConfigHistoryConsts.DELETED_MARKER));
-            assertFalse("Verify that no history entry for system change is listed.", 
-                    htmlPageJobs.asText().contains("config (system)"));
-            assertTrue("Check link to job page.", htmlPageJobs.asXml().contains("job/Test1/" + JobConfigHistoryConsts.URLNAME));
+        //check page with system history entries
+        checkSystemPage(webClient.goTo(JobConfigHistoryConsts.URLNAME));
+        checkSystemPage(webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=system"));
 
-            final HtmlPage htmlPageDeleted = webClient.goTo("jobConfigHistory/?filter=deleted");
-            final String page = htmlPageDeleted.asXml();
-            assertTrue("Verify history entry for deleted job is listed.", page.contains(JobConfigHistoryConsts.DELETED_MARKER));
-            assertFalse("Verify no history entry for job is listed.", page.contains("Test1"));
-            assertFalse("Verify no history entry for system change is listed.", page.contains("(system)"));
-            assertTrue("Check link to historypage exists.", page.contains("history?name"));
-            assertFalse("Verify that only \'Deleted\' entries are listed.", page.contains("Created") || page.contains("Changed"));
-        } catch (Exception ex) {
-            fail("Unable to complete testFilterWithData: " + ex);
-        }
+        //check page with job history entries
+        final HtmlPage htmlPageJobs = webClient.goTo(JobConfigHistoryConsts.URLNAME + "/?filter=jobs");
+        assertTrue("Verify history entry for job is listed.", htmlPageJobs.getAnchorByText("Test1") != null);
+        assertTrue("Verify history entry for deleted job is listed.", 
+                htmlPageJobs.asText().contains(JobConfigHistoryConsts.DELETED_MARKER));
+        assertFalse("Verify that no history entry for system change is listed.", 
+                htmlPageJobs.asText().contains("config (system)"));
+        assertTrue("Check link to job page.", htmlPageJobs.asXml().contains("job/Test1/" + JobConfigHistoryConsts.URLNAME));
+
+        //check page with 'deleted' history entries
+        final HtmlPage htmlPageDeleted = webClient.goTo("jobConfigHistory/?filter=deleted");
+        final String page = htmlPageDeleted.asXml();
+        assertTrue("Verify history entry for deleted job is listed.", page.contains(JobConfigHistoryConsts.DELETED_MARKER));
+        assertFalse("Verify no history entry for existing job is listed.", page.contains("Test1"));
+        assertFalse("Verify no history entry for system change is listed.", page.contains("(system)"));
+        assertTrue("Check link to historypage exists.", page.contains("history?name"));
+        assertFalse("Verify that only \'Deleted\' entries are listed.", page.contains("Created") || page.contains("Changed"));
+        
+        //check page with 'created' history entries
+        final HtmlPage htmlPageCreated = webClient.goTo("jobConfigHistory/?filter=created");
+        assertTrue("Verify history entry for job is listed.", htmlPageCreated.getAnchorByText("Test1") != null);
+        assertFalse("Verify history entry for deleted job is not listed.", 
+                htmlPageCreated.asText().contains(JobConfigHistoryConsts.DELETED_MARKER));
+        assertFalse("Verify that no history entry for system change is listed.", 
+                htmlPageCreated.asText().contains("config (system)"));
+        assertTrue("Check link to job page exists.", htmlPageJobs.asXml().contains("job/Test1/" + JobConfigHistoryConsts.URLNAME));
+        assertFalse("Verify that only \'Created\' entries are listed.", 
+                htmlPageCreated.asXml().contains("Deleted") || htmlPageCreated.asXml().contains("Changed"));
     }
 
     /**
@@ -185,14 +191,20 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         } catch (IllegalArgumentException e) {
             System.err.println(e);
         }
+       
+        assertFalse("Timestamp should not be null.", rootAction.checkTimestamp(null));
+        assertFalse("Timestamp should not be 'null'.", rootAction.checkTimestamp("null"));
         
+        final String timestamp = new SimpleDateFormat(JobConfigHistoryConsts.ID_FORMATTER).format(new GregorianCalendar().getTime());
         try {
-            final String timestamp = new SimpleDateFormat(JobConfigHistoryConsts.ID_FORMATTER).format(new GregorianCalendar().getTime());
             rootAction.getOldConfigXml("bla..blubb", timestamp);
             fail("Expected " + IllegalArgumentException.class + " because of '..' in parameter name.");
         } catch (IllegalArgumentException e) {
             System.err.println(e);
         }
+        
+        assertFalse("Name should not be null.", rootAction.checkParameters(null,timestamp));
+        assertFalse("Name should not be 'null'.", rootAction.checkParameters("null",timestamp));
     }
     
     /**

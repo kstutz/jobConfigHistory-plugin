@@ -41,7 +41,7 @@ public class ConfigInfo {
     private boolean isJob;
 
     /**
-     * Returns a new ConfigInfo object for a Hudson job.
+     * Returns a new ConfigInfo object for a Jenkins job.
      *
      * @param item
      *            a project
@@ -50,15 +50,11 @@ public class ConfigInfo {
      * @param histDescr
      *            metadata of the change
      * @return a new ConfigInfo object.
-     *
-     * @throws UnsupportedEncodingException
-     *             if UTF-8 is not available (probably a serious error).
      */
-    public static ConfigInfo create(final AbstractItem item, final File file, final HistoryDescr histDescr)
-        throws UnsupportedEncodingException {
+    public static ConfigInfo create(final AbstractItem item, final File file, final HistoryDescr histDescr) {
         return new ConfigInfo(
                 item.getFullName(),
-                URLEncoder.encode(file.getAbsolutePath(), "utf-8"),
+                encode(file.getAbsolutePath()),
                 histDescr.getTimestamp(),
                 histDescr.getUser(),
                 histDescr.getOperation(),
@@ -76,19 +72,24 @@ public class ConfigInfo {
      * @param isJob
      *            whether it is a job's config info or not. 
      * @return a new ConfigInfo object.
-     * @throws UnsupportedEncodingException
-     *             if UTF-8 is not available
      */
-    public static ConfigInfo create(final String name, final File file, final HistoryDescr histDescr, final boolean isJob)
-        throws UnsupportedEncodingException {
+    public static ConfigInfo create(final String name, final File file, final HistoryDescr histDescr, final boolean isJob) {
         return new ConfigInfo(
                 name,
-                URLEncoder.encode(file.getAbsolutePath(), "utf-8"),
+                encode(file.getAbsolutePath()),
                 histDescr.getTimestamp(),
                 histDescr.getUser(),
                 histDescr.getOperation(),
                 histDescr.getUserID(),
                 isJob);
+    }
+    
+    private static String encode(String path) {
+        try {
+            return URLEncoder.encode(path, "utf-8");
+        } catch (UnsupportedEncodingException ex) {
+            throw (new RuntimeException(ex));
+        }
     }
 
     /**

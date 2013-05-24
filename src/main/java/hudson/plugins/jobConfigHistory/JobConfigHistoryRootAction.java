@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -160,25 +161,74 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
                 itemDirs = historyRootDir.listFiles();
             }
             for (final File itemDir : itemDirs) {
-                for (final File historyDir : itemDir.listFiles(JobConfigHistory.HISTORY_FILTER)) {
-                    final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
-                    final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
-                    final ConfigInfo config;
-                    if ("jobs".equals(type) && !itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
-                        config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, true);
-                    } else {
-                        config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, false);
-                    }
-                    if (!("deleted".equals(type) && !"Deleted".equals(config.getOperation()))) {
-                        configs.add(config);
-                    }
-                }
+                configs.addAll(getConfigsForType(type, itemDir));
             }
         }
         return configs; 
     }
 
-    
+    /**
+     * Gets config history entires for the view options 'created', 'deleted' and 'jobs'.
+     * While 'jobs' displays all available job config history entries,
+     * 'deleted' and 'created' only show the last or the first one respectively.  
+     * 
+     * @param type 'created', 'deleted' or 'jobs'
+     * @param itemDir The job directory as File
+     * @return List of ConfigInfo, may be empty
+     * @throws IOException If one of the entries cannot be read.
+     */
+    private List<ConfigInfo> getConfigsForType(String type, File itemDir) throws IOException {
+        final ArrayList<ConfigInfo> configs = new ArrayList<ConfigInfo>();
+        
+        final Comparator<File> byName = new Comparator<File>() {  
+            public int compare(File f1, File f2) {  
+                return f1.getName().compareTo(f2.getName());  
+            }
+        };  
+        
+        final File[] historyDirs = itemDir.listFiles(JobConfigHistory.HISTORY_FILTER);
+        Arrays.sort(historyDirs, byName);
+        
+        if (historyDirs.length == 0) {
+            return configs;
+        }
+        
+        if ("created".equals(type)) {
+            if (itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
+                return configs;
+            }
+            final File historyDir = historyDirs[0];
+            final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
+            final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
+            if ("Created".equals(histDescr.getOperation())) {
+                final ConfigInfo config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, true);
+                configs.add(config);
+            }
+        } else if ("deleted".equals(type)) {
+            final File historyDir = historyDirs[historyDirs.length - 1];
+            final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
+            final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
+            if ("Deleted".equals(histDescr.getOperation())) {
+                final ConfigInfo config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, false);
+                configs.add(config);
+            }
+        } else {
+            for (final File historyDir : historyDirs) {
+                final ConfigInfo config;
+                final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
+                final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
+                if ("jobs".equals(type) && !itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
+                    config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, true);
+                } else {
+                    config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, false);
+                }
+                configs.add(config);
+            }
+        }
+
+        return configs;
+    }
+           
     /**
      * Returns the configuration history entries for one group of system files
      * or deleted jobs.
@@ -386,7 +436,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
      * @param timestamp Timestamp of config change.
      * @return True if parameters are okay.
      */
-    private boolean checkParameters(String name, String timestamp) {
+    protected boolean checkParameters(String name, String timestamp) {
         if (name == null || "null".equals(name) || !checkTimestamp(timestamp)) {
             return false;
         }
