@@ -84,6 +84,11 @@ public class ConfigInfo {
                 isJob);
     }
     
+    /**
+     * Tries to URL encode the given path.
+     * @param path The path as String.
+     * @return The encoded path as String.
+     */
     private static String encode(String path) {
         try {
             return URLEncoder.encode(path, "utf-8");
