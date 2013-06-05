@@ -179,35 +179,32 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
      */
     private List<ConfigInfo> getConfigsForType(String type, File itemDir) throws IOException {
         final ArrayList<ConfigInfo> configs = new ArrayList<ConfigInfo>();
-        
+
         final Comparator<File> byName = new Comparator<File>() {  
             public int compare(File f1, File f2) {  
                 return f1.getName().compareTo(f2.getName());  
             }
         };  
-        
+
         final File[] historyDirs = itemDir.listFiles(JobConfigHistory.HISTORY_FILTER);
-        Arrays.sort(historyDirs, byName);
-        
         if (historyDirs.length == 0) {
             return configs;
         }
+        Arrays.sort(historyDirs, byName);
         
         if ("created".equals(type)) {
             if (itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
                 return configs;
             }
             final File historyDir = historyDirs[0];
-            final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
-            final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
+            final HistoryDescr histDescr = readHistoryXml(historyDir);
             if ("Created".equals(histDescr.getOperation())) {
                 final ConfigInfo config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, true);
                 configs.add(config);
             }
         } else if ("deleted".equals(type)) {
             final File historyDir = historyDirs[historyDirs.length - 1];
-            final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
-            final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
+            final HistoryDescr histDescr = readHistoryXml(historyDir);
             if ("Deleted".equals(histDescr.getOperation())) {
                 final ConfigInfo config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, false);
                 configs.add(config);
@@ -215,8 +212,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         } else {
             for (final File historyDir : historyDirs) {
                 final ConfigInfo config;
-                final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
-                final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
+                final HistoryDescr histDescr = readHistoryXml(historyDir);
                 if ("jobs".equals(type) && !itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
                     config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, true);
                 } else {
@@ -228,7 +224,12 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
 
         return configs;
     }
-           
+    
+    private HistoryDescr readHistoryXml(File historyDir) throws IOException {
+        final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
+        return (HistoryDescr) historyXml.read();
+    }
+
     /**
      * Returns the configuration history entries for one group of system files
      * or deleted jobs.
