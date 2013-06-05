@@ -19,6 +19,7 @@ import org.kohsuke.stapler.StaplerResponse;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.XmlFile;
+import hudson.model.AbstractItem;
 import hudson.model.AbstractProject;
 import hudson.model.Item;
 import hudson.model.RootAction;
@@ -26,6 +27,7 @@ import hudson.plugins.jobConfigHistory.JobConfigHistoryBaseAction.SideBySideView
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.util.MultipartFormDataParser;
+import java.util.Collection;
 
 /**
  *
@@ -154,17 +156,27 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         if (!historyRootDir.isDirectory()) {
             LOG.fine(historyRootDir + " is not a directory, assuming that no history exists yet.");
         } else {
-            final File[] itemDirs;
-            if ("deleted".equals(type)) {
-                itemDirs = historyRootDir.listFiles(JobConfigHistory.DELETED_FILTER);
-            } else {
-                itemDirs = historyRootDir.listFiles();
-            }
-            for (final File itemDir : itemDirs) {
-                configs.addAll(getConfigsForType(type, itemDir));
-            }
+            addConfigs(configs, type, historyRootDir, "");
         }
         return configs; 
+    }
+
+    private void addConfigs(Collection<ConfigInfo> configs, String type, File rootDir, String prefix) throws IOException {
+        final File[] itemDirs;
+        if ("deleted".equals(type)) {
+            itemDirs = rootDir.listFiles(JobConfigHistory.DELETED_FILTER);
+        } else {
+            itemDirs = rootDir.listFiles();
+        }
+        for (final File itemDir : itemDirs) {
+            configs.addAll(getConfigsForType(type, itemDir, prefix));
+
+            File jobs = new File(itemDir, JobConfigHistoryConsts.JOBS_HISTORY_DIR);
+            if (jobs.isDirectory()) {
+                // Recurse into folders.
+                addConfigs(configs, type, jobs, prefix + itemDir.getName() + "/");
+            }
+        }
     }
 
     /**
@@ -174,10 +186,11 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
      * 
      * @param type 'created', 'deleted' or 'jobs'
      * @param itemDir The job directory as File
+     * @param prefix Something Jesse Glick came up with but never documented.
      * @return List of ConfigInfo, may be empty
      * @throws IOException If one of the entries cannot be read.
      */
-    private List<ConfigInfo> getConfigsForType(String type, File itemDir) throws IOException {
+    private List<ConfigInfo> getConfigsForType(String type, File itemDir, String prefix) throws IOException {
         final ArrayList<ConfigInfo> configs = new ArrayList<ConfigInfo>();
 
         final Comparator<File> byName = new Comparator<File>() {  
@@ -214,9 +227,9 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
                 final ConfigInfo config;
                 final HistoryDescr histDescr = readHistoryXml(historyDir);
                 if ("jobs".equals(type) && !itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
-                    config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, true);
+                        config = ConfigInfo.create(prefix + itemDir.getName(), historyDir, histDescr, true);
                 } else {
-                    config = ConfigInfo.create(itemDir.getName(), historyDir, histDescr, false);
+                        config = ConfigInfo.create(prefix + itemDir.getName(), historyDir, histDescr, false);
                 }
                 configs.add(config);
             }
@@ -225,11 +238,17 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         return configs;
     }
     
+    /**
+     * Extract HistoryDescriptor from history directory.
+     * @param historyDir History directory as File. (e.g. 2013-10-10_00-08-15)
+     * @return History descriptor
+     * @throws IOException If xml file cannot be read.
+     */
     private HistoryDescr readHistoryXml(File historyDir) throws IOException {
         final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
         return (HistoryDescr) historyXml.read();
     }
-
+    
     /**
      * Returns the configuration history entries for one group of system files
      * or deleted jobs.
