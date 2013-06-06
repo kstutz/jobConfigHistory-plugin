@@ -71,7 +71,7 @@ public enum ConfigHistoryListenerHelper {
      * 
      * @param xmlFile
      *            the current xmlFile configuration file to save
-     * @param timestamp
+     * @param timestampHolder
      *            time of operation.
      * @return timestamped directory where to store one history entry.
      */
@@ -79,6 +79,7 @@ public enum ConfigHistoryListenerHelper {
     private File getRootDir(final XmlFile xmlFile, final AtomicReference<Calendar> timestampHolder) {
         final JobConfigHistory plugin = Hudson.getInstance().getPlugin(JobConfigHistory.class);
         final File itemHistoryDir = plugin.getHistoryDir(xmlFile);
+        final int halfASecond = 500;
         // perform check for purge here, when we are actually going to create
         // a new directory, rather than just when we scan it in above method.
         plugin.checkForPurgeByQuantity(itemHistoryDir);
@@ -90,7 +91,7 @@ public enum ConfigHistoryListenerHelper {
             if (f.isDirectory()) {
                 LOG.log(Level.FINE, "clash on {0}, will wait a moment", f);
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(halfASecond);
                 } catch (InterruptedException x) {
                     throw new RuntimeException(x);
                 }
@@ -115,7 +116,7 @@ public enum ConfigHistoryListenerHelper {
      */
     public final void createNewHistoryEntry(final XmlFile xmlFile) {
         try {
-            AtomicReference<Calendar> timestamp = new AtomicReference<Calendar>();
+            final AtomicReference<Calendar> timestamp = new AtomicReference<Calendar>();
             final File timestampedDir = getRootDir(xmlFile, timestamp);
             LOG.log(Level.FINE, "{0} on {1}", new Object[] {this, timestampedDir});
             if (this != DELETED) {

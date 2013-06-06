@@ -29,6 +29,7 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         super.setUp();
         webClient = createWebClient();
     }
+
     /**
      * Tests whether info gets displayed correctly for filter parameter none/system/jobs/deleted.
      */
@@ -73,6 +74,7 @@ public class JobConfigHistoryRootActionTest extends AbstractHudsonTestCaseDeleti
         
         //check page with 'created' history entries
         final HtmlPage htmlPageCreated = webClient.goTo("jobConfigHistory/?filter=created");
+        System.out.println(htmlPageCreated.asText());
         assertTrue("Verify history entry for job is listed.", htmlPageCreated.getAnchorByText("Test1") != null);
         assertFalse("Verify history entry for deleted job is not listed.", 
                 htmlPageCreated.asText().contains(JobConfigHistoryConsts.DELETED_MARKER));

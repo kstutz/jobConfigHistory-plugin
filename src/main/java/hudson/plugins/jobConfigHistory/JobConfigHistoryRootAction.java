@@ -19,7 +19,6 @@ import org.kohsuke.stapler.StaplerResponse;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.XmlFile;
-import hudson.model.AbstractItem;
 import hudson.model.AbstractProject;
 import hudson.model.Item;
 import hudson.model.RootAction;
@@ -161,6 +160,14 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         return configs; 
     }
 
+    /**
+     * Adds ConfigInfos to Collection, recurses into Cloudbees plugin folders (thanks to Jesse Glick).
+     * @param configs Collection of ConfigInfos that configs are added to.
+     * @param type 'created', 'deleted' or 'jobs'
+     * @param rootDir The config history rootDir as File.
+     * @param prefix Something Jesse Glick came up with but never documented.
+     * @throws IOException If one of the entries cannot be read.
+     */
     private void addConfigs(Collection<ConfigInfo> configs, String type, File rootDir, String prefix) throws IOException {
         final File[] itemDirs;
         if ("deleted".equals(type)) {
@@ -171,7 +178,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         for (final File itemDir : itemDirs) {
             configs.addAll(getConfigsForType(type, itemDir, prefix));
 
-            File jobs = new File(itemDir, JobConfigHistoryConsts.JOBS_HISTORY_DIR);
+            final File jobs = new File(itemDir, JobConfigHistoryConsts.JOBS_HISTORY_DIR);
             if (jobs.isDirectory()) {
                 // Recurse into folders.
                 addConfigs(configs, type, jobs, prefix + itemDir.getName() + "/");
@@ -227,9 +234,9 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
                 final ConfigInfo config;
                 final HistoryDescr histDescr = readHistoryXml(historyDir);
                 if ("jobs".equals(type) && !itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
-                        config = ConfigInfo.create(prefix + itemDir.getName(), historyDir, histDescr, true);
+                    config = ConfigInfo.create(prefix + itemDir.getName(), historyDir, histDescr, true);
                 } else {
-                        config = ConfigInfo.create(prefix + itemDir.getName(), historyDir, histDescr, false);
+                    config = ConfigInfo.create(prefix + itemDir.getName(), historyDir, histDescr, false);
                 }
                 configs.add(config);
             }

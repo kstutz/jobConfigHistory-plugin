@@ -36,22 +36,32 @@
                       <td>${config.date}</td>
                       <td>${config.operation}</td>
                       <td><a href="${rootURL}/user/${config.userID}">${config.userID}</a></td>
-                      <td><a href="configOutput?type=xml&amp;timestamp=${config.getDate()}">
-                            <img src="${imagesURL}/24x24/document.gif" alt="" />${%View as XML}
-                          </a>
-                          <st:nbsp />
-                          <a href="configOutput?type=raw&amp;timestamp=${config.getDate()}">
-                            (${%RAW})
-                          </a>
+                      <td><j:if test="${!config.getOperation().equals('Deleted')}">
+                            <a href="configOutput?type=xml&amp;timestamp=${config.getDate()}">
+                              <img src="${imagesURL}/24x24/document.gif" alt="" />${%View as XML}
+                            </a>
+                            <st:nbsp />
+                            <a href="configOutput?type=raw&amp;timestamp=${config.getDate()}">
+                              (${%RAW})
+                            </a>
+                          </j:if>
                       </td>
-                      <td><j:if test="${configNr > 1}">
+                      <td><j:if test="${configNr > 1 and !config.getOperation().equals('Deleted')}">
 							<a id="restore${configNr}" href="restoreQuestion?timestamp=${config.getDate()}">
 								<img src="${resURL}/plugin/jobConfigHistory/img/restore.png" alt="${%Restore}" />
 							</a>
                           </j:if>
                       </td>
-                      <td align="center" style="border-left: solid 1px #bbb;"><f:radio name="timestamp1" value="${config.getDate()}" checked="${configNr == 2 ? true:false}" /></td>
-                      <td align="center" style="border-left: solid 1px #bbb;"><f:radio name="timestamp2" value="${config.getDate()}" checked="${configNr == 1 ? true:false}" /></td>
+                      <td align="center" style="border-left: solid 1px #bbb;">
+                        <j:if test="${!config.getOperation().equals('Deleted')}">
+                          <f:radio name="timestamp1" value="${config.getDate()}" checked="${configNr == 2 ? true:false}" />
+                        </j:if>
+                      </td>
+                      <td align="center" style="border-left: solid 1px #bbb;">
+                        <j:if test="${!config.getOperation().equals('Deleted')}">
+                          <f:radio name="timestamp2" value="${config.getDate()}" checked="${configNr == 1 ? true:false}" />
+                        </j:if>
+                      </td>
                     </tr>
                       <f:invisibleEntry>
               	        <f:textbox name="name" value="${config.getJob()}" />
