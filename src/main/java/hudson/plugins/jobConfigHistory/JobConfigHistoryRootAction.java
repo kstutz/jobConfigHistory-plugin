@@ -187,7 +187,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
     }
 
     /**
-     * Gets config history entires for the view options 'created', 'deleted' and 'jobs'.
+     * Gets config history entries for the view options 'created', 'deleted' and 'jobs'.
      * While 'jobs' displays all available job config history entries,
      * 'deleted' and 'created' only show the last or the first one respectively.  
      * 
@@ -200,17 +200,11 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
     private List<ConfigInfo> getConfigsForType(String type, File itemDir, String prefix) throws IOException {
         final ArrayList<ConfigInfo> configs = new ArrayList<ConfigInfo>();
 
-        final Comparator<File> byName = new Comparator<File>() {  
-            public int compare(File f1, File f2) {  
-                return f1.getName().compareTo(f2.getName());  
-            }
-        };  
-
         final File[] historyDirs = itemDir.listFiles(JobConfigHistory.HISTORY_FILTER);
         if (historyDirs.length == 0) {
             return configs;
         }
-        Arrays.sort(historyDirs, byName);
+        Arrays.sort(historyDirs, new FileNameComparator());
         
         if ("created".equals(type)) {
             if (itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
@@ -233,7 +227,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
             for (final File historyDir : historyDirs) {
                 final ConfigInfo config;
                 final HistoryDescr histDescr = readHistoryXml(historyDir);
-                if ("jobs".equals(type) && !itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
+                if (!itemDir.getName().contains(JobConfigHistoryConsts.DELETED_MARKER)) {
                     config = ConfigInfo.create(prefix + itemDir.getName(), historyDir, histDescr, true);
                 } else {
                     config = ConfigInfo.create(prefix + itemDir.getName(), historyDir, histDescr, false);
@@ -318,21 +312,20 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
      * @param type Output type ('xml' or 'plain').
      * @return The link as String.
      */
-    public final String createLinkToJobFiles(ConfigInfo config, String type) {
+    public final String createLinkToFiles(ConfigInfo config, String type) {
         String link = null;
         final String name = config.getJob();
-        final String timestamp = config.getDate();
-    
-        if (name.contains(JobConfigHistoryConsts.DELETED_MARKER) && getOldConfigXml(name, timestamp) == null) {
-            //if last config.xml for deleted job doesn't exist (due to deletion while being disabled)
-            //then return link to the version before
+        String timestamp = config.getDate();
+        
+        if (name.contains(JobConfigHistoryConsts.DELETED_MARKER)) {
+            //last config.xml for deleted job usually doesn't exist
             try {
-                final ConfigInfo nextConfig = getSingleConfigs(name).get(1);
-                link = "configOutput?type=" + type + "&name=" + name + "&timestamp=" + nextConfig.getDate();
+                timestamp = getSingleConfigs(name).get(1).getDate();
+                link = "configOutput?type=" + type + "&name=" + name + "&timestamp=" + timestamp;
             } catch (IOException ex) {
                 LOG.finest("Unable to get config for " + name);
             } catch (IndexOutOfBoundsException iob) {
-                LOG.finest("Unable to get config for " + name);
+                LOG.finest("Unable to get second to last config for " + name);
             }
         } else if (config.getIsJob()) {
             link = getHudson().getRootUrl() + "job/" + name + getUrlName() 
@@ -340,6 +333,7 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         } else {
             link = "configOutput?type=" + type + "&name=" + name + "&timestamp=" + timestamp;
         }
+
         return link;
     }
     
@@ -583,5 +577,11 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         throws IOException {
         final String name = req.getParameter("name");
         rsp.sendRedirect("restoreQuestion?name=" + name);
+    }
+    
+    private static class FileNameComparator implements Comparator<File> {
+        public int compare(File f1, File f2) {  
+            return f1.getName().compareTo(f2.getName());  
+        }
     }
 }
