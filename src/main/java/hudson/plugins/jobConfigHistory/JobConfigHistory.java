@@ -417,11 +417,28 @@ public class JobConfigHistory extends Plugin {
     protected boolean isSaveable(final Saveable item, final XmlFile xmlFile) {
         boolean saveable = false;
         if (item instanceof AbstractProject<?, ?>) {
-            saveable = true;
-        } else if (saveSystemConfiguration && xmlFile.getFile().getParentFile().equals(Hudson.getInstance().root)) {
+            saveable = false;
+        } 
+        if (xmlFile.getFile().getParentFile().equals(Hudson.getInstance().root) && saveSystemConfiguration) {
             saveable = checkRegex(xmlFile);
-        } else if (saveItemGroupConfiguration && item instanceof ItemGroup) {
+        }
+
+/*      if (item instanceof ItemGroup && saveItemGroupConfiguration) {
             saveable = true;
+        }
+*/
+        if (saveable) {
+            saveable = checkDuplicate(xmlFile);
+        }
+        
+        return saveable;
+    }
+    
+    protected boolean isSaveableProject(final Saveable item, final XmlFile xmlFile) {
+        boolean saveable = true;
+        
+        if (item instanceof ItemGroup && !saveItemGroupConfiguration) {
+            saveable = false;
         }
         if (item instanceof MavenModule && !saveModuleConfiguration) {
             saveable = false;

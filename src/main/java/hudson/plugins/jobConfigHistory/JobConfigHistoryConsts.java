@@ -36,5 +36,5 @@ public final class JobConfigHistoryConsts {
     public static final String DEFAULT_EXCLUDE = "queue|nodeMonitors|UpdateCenter|global-build-stats";
 
     /** Format for timestamped dirs. */
-    public static final String ID_FORMATTER = "yyyy-MM-dd_HH-mm-ss";
+    public static final String ID_FORMATTER = "yyyy-MM-dd_HH-mm-ss-SSS";
 }

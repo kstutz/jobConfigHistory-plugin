@@ -2,6 +2,7 @@ package hudson.plugins.jobConfigHistory;
 
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.XmlFile;
 import hudson.model.Item;
 import hudson.model.AbstractItem;
 import hudson.model.Hudson;
@@ -37,6 +38,19 @@ public final class JobConfigHistoryJobListener extends ItemListener {
         LOG.finest("onCreated for " + item + " done.");
     }
 
+    @Override
+    public void onUpdated(Item item) {
+        LOG.finest("In onUpdated for " + item);
+        final XmlFile file = ((AbstractItem) item).getConfigFile();
+        final JobConfigHistory plugin = Hudson.getInstance().getPlugin(JobConfigHistory.class);
+        if (item instanceof AbstractItem && plugin.isSaveableProject(item, file)){
+            ConfigHistoryListenerHelper.CHANGED.createNewHistoryEntry(file);
+        } else {
+            LOG.finest("onUpdated: not an AbstractItem, skipping history save");
+        }
+        LOG.finest("onUpdated for " + item + " done.");
+    }
+    
     /** {@inheritDoc}
      * 
      * <p>
