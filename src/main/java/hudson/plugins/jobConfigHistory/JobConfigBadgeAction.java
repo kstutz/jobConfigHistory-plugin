@@ -15,8 +15,10 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildBadgeAction;
 import hudson.model.Hudson;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.listeners.RunListener;
+import jenkins.model.RunAction2;
 
 /**
  * This class adds a badge to the build history marking builds 
@@ -24,8 +26,7 @@ import hudson.model.listeners.RunListener;
  * 
  * @author kstutz
  */
-@Extension
-public class JobConfigBadgeAction extends RunListener<AbstractBuild> implements BuildBadgeAction {
+public class JobConfigBadgeAction implements BuildBadgeAction, RunAction2 {
 
     /**The logger.*/
     private static final Logger LOG = Logger.getLogger(JobConfigBadgeAction.class.getName());
@@ -34,21 +35,28 @@ public class JobConfigBadgeAction extends RunListener<AbstractBuild> implements 
     private String[] configDates;
     
     /**We need the build in order to get the project name.*/
-    private AbstractBuild build;
+    private transient AbstractBuild build;
 
-    /**No arguments about a no-argument constructor (necessary because of annotation).*/
-    public JobConfigBadgeAction() { }
-    
     /**
      * Creates a new JobConfigBadgeAction.
      * @param configDates The dates of the last two config changes
      * @param build The respective build
      */
-    public JobConfigBadgeAction(String[] configDates, AbstractBuild build) {
-        super(AbstractBuild.class);
+    private JobConfigBadgeAction(String[] configDates) {
         this.configDates = configDates.clone();
-        this.build = build;
     }
+
+    @Override public void onAttached(Run<?,?> r) {
+        build = (AbstractBuild) r;
+
+    }
+    
+    @Override public void onLoad(Run<?,?> r) {
+        build = (AbstractBuild) r;
+    }
+
+    @Extension
+    public static final class Listener extends RunListener<AbstractBuild> {
 
     @Override
     public void onStarted(AbstractBuild build, TaskListener listener) {
@@ -86,13 +94,13 @@ public class JobConfigBadgeAction extends RunListener<AbstractBuild> implements 
 
             if (lastBuildDate != null && lastConfigChange.after(lastBuildDate)) {
                 final String[] dates = {lastChange.getDate(), findLastRelevantConfigChangeDate(configs, lastBuildDate)};
-                build.addAction(new JobConfigBadgeAction(dates, build));
+                build.addAction(new JobConfigBadgeAction(dates));
             }
         }
 
         super.onStarted(build, listener);
     }
-    
+
     /**
      * Finds the date of the last config change that happened before the last build.
      * This is needed for the link in the build history that shows the difference between the current
@@ -129,6 +137,8 @@ public class JobConfigBadgeAction extends RunListener<AbstractBuild> implements 
         return date;
     }
     
+    } // end Listener
+
     /**
      * Returns true if the config change build badges should appear
      * (depending on plugin settings and user permissions).
