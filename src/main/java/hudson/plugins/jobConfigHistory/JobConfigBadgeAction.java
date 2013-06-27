@@ -1,5 +1,7 @@
 package hudson.plugins.jobConfigHistory;
 
+import static java.util.logging.Level.FINE;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
@@ -26,7 +28,7 @@ import jenkins.model.RunAction2;
  * 
  * @author kstutz
  */
-public class JobConfigBadgeAction implements BuildBadgeAction, RunAction2 {
+public final class JobConfigBadgeAction implements BuildBadgeAction, RunAction2 {
 
     /**The logger.*/
     private static final Logger LOG = Logger.getLogger(JobConfigBadgeAction.class.getName());
@@ -40,103 +42,103 @@ public class JobConfigBadgeAction implements BuildBadgeAction, RunAction2 {
     /**
      * Creates a new JobConfigBadgeAction.
      * @param configDates The dates of the last two config changes
-     * @param build The respective build
      */
     private JobConfigBadgeAction(String[] configDates) {
         this.configDates = configDates.clone();
     }
 
-    @Override public void onAttached(Run<?,?> r) {
+    /** {@inheritDoc} */
+    public void onAttached(Run<?, ?> r) {
         build = (AbstractBuild) r;
 
     }
     
-    @Override public void onLoad(Run<?,?> r) {
+    /** {@inheritDoc} */
+    public void onLoad(Run<?, ?> r) {
         build = (AbstractBuild) r;
     }
 
     @Extension
     public static final class Listener extends RunListener<AbstractBuild> {
 
-    @Override
-    public void onStarted(AbstractBuild build, TaskListener listener) {
-        final AbstractProject<?, ?> project = build.getProject();
-        if (project.getNextBuildNumber() <= 2) {
-            super.onStarted(build, listener);
-            return;
-        }
+        @Override
+        public void onStarted(AbstractBuild build, TaskListener listener) {
+            final AbstractProject<?, ?> project = build.getProject();
+            if (project.getNextBuildNumber() <= 2) {
+                super.onStarted(build, listener);
+                return;
+            }
 
-        Date lastBuildDate = null;
-        if (project.getLastBuild().getPreviousBuild() != null) {
-            lastBuildDate = project.getLastBuild().getPreviousBuild().getTime();
-        }
+            Date lastBuildDate = null;
+            if (project.getLastBuild().getPreviousBuild() != null) {
+                lastBuildDate = project.getLastBuild().getPreviousBuild().getTime();
+            }
         
-        //get timestamp of config-change
-        final ArrayList<ConfigInfo> configs = new ArrayList<ConfigInfo>();
-        final File historyRootDir = Hudson.getInstance().getPlugin(JobConfigHistory.class).getHistoryDir(project.getConfigFile());
-        if (historyRootDir.exists()) {
-            try {
-                for (final File historyDir : historyRootDir.listFiles(JobConfigHistory.HISTORY_FILTER)) {
-                    final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
-                    final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
-                    final ConfigInfo config = ConfigInfo.create(project, historyDir, histDescr);
-                    configs.add(config);
+            //get timestamp of config-change
+            final ArrayList<ConfigInfo> configs = new ArrayList<ConfigInfo>();
+            final File historyRootDir = Hudson.getInstance().getPlugin(JobConfigHistory.class).getHistoryDir(project.getConfigFile());
+            if (historyRootDir.exists()) {
+                try {
+                    for (final File historyDir : historyRootDir.listFiles(JobConfigHistory.HISTORY_FILTER)) {
+                        final XmlFile historyXml = new XmlFile(new File(historyDir, JobConfigHistoryConsts.HISTORY_FILE));
+                        final HistoryDescr histDescr = (HistoryDescr) historyXml.read();
+                        final ConfigInfo config = ConfigInfo.create(project, historyDir, histDescr);
+                        configs.add(config);
+                    }
+                } catch (IOException ex) {
+                    LOG.log(FINE, "Could not parse history files: {0}", ex);
                 }
-            } catch (IOException ex) {
-                LOG.finest("Could not parse history files: " + ex);
             }
-        }
         
-        if (configs.size() > 1) {
-            Collections.sort(configs, ConfigInfoComparator.INSTANCE);
-            final ConfigInfo lastChange = Collections.min(configs, ConfigInfoComparator.INSTANCE);
-            final Date lastConfigChange = parseDate(lastChange);
+            if (configs.size() > 1) {
+                Collections.sort(configs, ConfigInfoComparator.INSTANCE);
+                final ConfigInfo lastChange = Collections.min(configs, ConfigInfoComparator.INSTANCE);
+                final Date lastConfigChange = parseDate(lastChange);
 
-            if (lastBuildDate != null && lastConfigChange.after(lastBuildDate)) {
-                final String[] dates = {lastChange.getDate(), findLastRelevantConfigChangeDate(configs, lastBuildDate)};
-                build.addAction(new JobConfigBadgeAction(dates));
+                if (lastBuildDate != null && lastConfigChange.after(lastBuildDate)) {
+                    final String[] dates = {lastChange.getDate(), findLastRelevantConfigChangeDate(configs, lastBuildDate)};
+                    build.addAction(new JobConfigBadgeAction(dates));
+                }
             }
+
+            super.onStarted(build, listener);
         }
 
-        super.onStarted(build, listener);
-    }
-
-    /**
-     * Finds the date of the last config change that happened before the last build.
-     * This is needed for the link in the build history that shows the difference between the current
-     * configuration and the version that was in place when the last build happened. 
-     * 
-     * @param configs An ArrayList full of ConfigInfos.
-     * @param lastBuildDate The date of the lastBuild (as Date).
-     * @return The date of the last relevant config change (as String).
-     */
-    private String findLastRelevantConfigChangeDate(ArrayList<ConfigInfo> configs, Date lastBuildDate) {
-        for (int i = 1; i < configs.size(); i++) {
-            final ConfigInfo oldConfigChange = configs.get(i);
-            final Date changeDate = parseDate(oldConfigChange);
-            if (changeDate != null && changeDate.before(lastBuildDate)) {
-                return oldConfigChange.getDate();
+        /**
+         * Finds the date of the last config change that happened before the last build.
+         * This is needed for the link in the build history that shows the difference between the current
+         * configuration and the version that was in place when the last build happened. 
+         * 
+         * @param configs An ArrayList full of ConfigInfos.
+         * @param lastBuildDate The date of the lastBuild (as Date).
+         * @return The date of the last relevant config change (as String).
+         */
+        private String findLastRelevantConfigChangeDate(ArrayList<ConfigInfo> configs, Date lastBuildDate) {
+            for (int i = 1; i < configs.size(); i++) {
+                final ConfigInfo oldConfigChange = configs.get(i);
+                final Date changeDate = parseDate(oldConfigChange);
+                if (changeDate != null && changeDate.before(lastBuildDate)) {
+                    return oldConfigChange.getDate();
+                }
             }
+            return configs.get(1).getDate();
         }
-        return configs.get(1).getDate();
-    }
     
-    /**
-     * Parses the date from a config info into a java.util.Date.
-     * 
-     * @param config A ConfigInfo.
-     * @return The parsed date as a java.util.Date.
-     */
-    private Date parseDate(ConfigInfo config) {
-        Date date = null;
-        try {
-            date = new SimpleDateFormat(JobConfigHistoryConsts.ID_FORMATTER).parse(config.getDate());
-        } catch (ParseException ex) {
-            LOG.finest("Could not parse Date: " + ex);
+        /**
+         * Parses the date from a config info into a java.util.Date.
+         * 
+         * @param config A ConfigInfo.
+         * @return The parsed date as a java.util.Date.
+         */
+        private Date parseDate(ConfigInfo config) {
+            Date date = null;
+            try {
+                date = new SimpleDateFormat(JobConfigHistoryConsts.ID_FORMATTER).parse(config.getDate());
+            } catch (ParseException ex) {
+                LOG.finest("Could not parse Date: " + ex);
+            }
+            return date;
         }
-        return date;
-    }
-    
     } // end Listener
 
     /**

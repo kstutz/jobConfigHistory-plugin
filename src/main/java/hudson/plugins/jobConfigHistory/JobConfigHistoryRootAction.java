@@ -1,7 +1,7 @@
 package hudson.plugins.jobConfigHistory;
 
 import java.io.ByteArrayInputStream;
-import static java.util.logging.Level.*;
+import static java.util.logging.Level.FINE;
 
 import java.io.File;
 import java.io.IOException;
@@ -581,7 +581,11 @@ public class JobConfigHistoryRootAction extends JobConfigHistoryBaseAction imple
         rsp.sendRedirect("restoreQuestion?name=" + name);
     }
     
+    /**
+     * Utility class for comparing file names alphanumerically.
+     */
     private static class FileNameComparator implements Comparator<File> {
+        /** {@inheritDoc} */
         public int compare(File f1, File f2) {  
             return f1.getName().compareTo(f2.getName());  
         }

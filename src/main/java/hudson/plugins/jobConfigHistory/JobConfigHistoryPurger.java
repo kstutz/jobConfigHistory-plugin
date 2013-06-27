@@ -1,6 +1,6 @@
 package hudson.plugins.jobConfigHistory;
 
-import static java.util.logging.Level.*;
+import static java.util.logging.Level.FINE;
 
 import java.io.File;
 import java.text.ParseException;
@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
@@ -87,9 +86,8 @@ public class JobConfigHistoryPurger extends PeriodicWork {
                     for (File historyDir : historyDirs) {
                         //historyDir: e.g. 2013-01-18_17-33-51
                         if (isTooOld(historyDir)) {
-                            LOG.log(FINEST, "Should delete: {0}", historyDir);
-                                LOG.finest("Should delete: " + historyDir);
-                            deleteDirectory(historyDir);
+                            LOG.log(FINE, "Should delete: {0}", historyDir);
+                            plugin.deleteDirectory(historyDir);
                         } else {
                             break;
                         }
