@@ -27,7 +27,6 @@ public final class JobConfigHistorySaveableListener extends SaveableListener {
         LOG.finest("In onChange for " + o);
         if (plugin.isSaveable(o, file)) {
             ConfigHistoryListenerHelper.CHANGED.createNewHistoryEntry(file);
-            LOG.finest("SSSSSSSSSSSSSSSSSSaveable!");
         }
         LOG.finest("onChange for " + o + " done.");
         //        new Exception("STACKTRACE for double invocation").printStackTrace();

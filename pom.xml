@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.460</version>
+        <version>1.519</version>
     </parent>
 
     <artifactId>jobConfigHistory</artifactId>
@@ -15,7 +15,7 @@
     <url>http://wiki.jenkins-ci.org/display/JENKINS/JobConfigHistory+Plugin</url>
     <issueManagement>
         <system>JIRA</system>
-        <url>http://issues.jenkins-ci.org/secure/IssueNavigator.jspa?reset=true&amp;jqlQuery=project+%3D+JENKINS+AND+status+in+%28Open%2C+%22In+Progress%22%2C+Reopened%29+AND+component+%3D+%27jobConfigHistory%27</url>
+        <url>https://issues.jenkins-ci.org/browse/JENKINS/component/15683</url>
     </issueManagement>
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/jobConfigHistory-plugin.git</connection>
@@ -82,78 +82,15 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>commons-lang</groupId>
-            <artifactId>commons-lang</artifactId>
-            <version>2.4</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>1.4</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-            <version>2.4</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jvnet.hudson</groupId>
-            <artifactId>test-annotations</artifactId>
-            <version>1.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci</groupId>
-            <artifactId>htmlunit</artifactId>
-            <version>2.6-jenkins-6</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>xml-apis</groupId>
-            <artifactId>xml-apis</artifactId>
-            <version>1.0.b2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.googlecode.java-diff-utils</groupId>
             <artifactId>diffutils</artifactId>
             <version>1.2.1</version>
         </dependency>
         <dependency>
-            <!--
-                stapler-1.172 depends on r06, which is missing symbol
-                com.google.common.collect.ImmutableList.copyOf(Ljava/util/Collection;)
-                new version 11.0.1 with this symbol is provided in jenkins-1.424.6
-            -->
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>11.0.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.kohsuke.stapler</groupId>
-            <artifactId>stapler</artifactId>
-            <version>1.172</version>
-            <scope>provided</scope>
-        </dependency>
-            <dependency>
-            <groupId>org.kohsuke.stapler</groupId>
-            <artifactId>json-lib</artifactId>
-            <version>2.1-rev7</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jvnet.localizer</groupId>
-            <artifactId>localizer</artifactId>
-            <version>1.10</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
         	<groupId>org.jenkins-ci.main</groupId>
-        	<artifactId>maven-plugin</artifactId></dependency></dependencies>
+        	<artifactId>maven-plugin</artifactId>
+        </dependency>
+    </dependencies>
     <build>
         <plugins>
             <plugin>
